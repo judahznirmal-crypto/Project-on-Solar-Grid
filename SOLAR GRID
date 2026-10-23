@@ -1,0 +1,70 @@
+// Define a structure for simulated sensor records.
+struct SensorRecord {
+  int hour;
+  float irradiation; // W/m^2
+  float temperature; // °C
+};
+
+// Simulated test timeline data
+SensorRecord testLog[] = {
+  {1,  2300.5, 57.0},
+  {9,  450.2, 31.5},
+  {10, 800.0, 35.2},
+  {11, 950.8, 39.0},
+  {12, 1050.0, 43.5}, // Trigger condition: Thermal Overheat (> 40°C)
+  {13, 400.1, 36.0}   // Trigger condition: Cloud Intermittency (Drop > 400 W/m^2)
+};
+
+const int totalRecords = sizeof(testLog) / sizeof(testLog[0]);
+
+void setup() {
+  Serial.begin(9600);
+  while (!Serial);
+
+  delay(1000);
+
+ 
+  Serial.println("Hour,Irradiation(W/m2),Temperature(C),Power(kW),Status");
+
+  runSimulationEngine();
+}
+
+void loop() {
+ 
+  //  Swap testLog[] with live sensor reads inside this loop.
+}
+
+void runSimulationEngine() {
+  for (int i = 0; i < totalRecords; i++) {
+    float irr = testLog[i].irradiation;
+    float temp = testLog[i].temperature;
+    int hour = testLog[i].hour;
+
+    // 1. Calculate estimated power output (kW) with temperature coefficient correction
+    float calculatedPower = (irr * 0.15) * (1.0 - 0.004 * (temp - 25.0));
+
+    // 2. Anomaly detection logic
+    String gridStatus = "Normal";
+    if (temp > 40.0) {
+      gridStatus = "Thermal Overheat";
+    } else if (i > 0 && (testLog[i - 1].irradiation - irr) > 400.0) {
+      gridStatus = "Cloud Intermittency";
+    }
+
+    // 3. Output formatted row to Serial Monitor.
+    Serial.print(hour);
+    Serial.print(",");
+    Serial.print(irr);
+    Serial.print(",");
+    Serial.print(temp);
+    Serial.print(",");
+    Serial.print(calculatedPower, 2);
+    Serial.print(",");
+    Serial.println(gridStatus);
+
+    // Wait 1 Millisecond between rows to simulate real-time processing intervals
+    delay(100);
+  }
+ 
+  Serial.println("\n--- Simulation Test Run Complete ---");
+}
